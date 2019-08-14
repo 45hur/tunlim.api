@@ -17,7 +17,7 @@ FROM debian
 
 RUN apt-get update
 RUN apt-get install -qq apt-utils
-RUN apt-get install -qq libpcap-dev curl wget python perl gpg cron nano arping
+RUN apt-get install -qq libpcap-dev curl wget python perl gpg cron nano arping liblmdb0
 
 RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.asc.gpg
 RUN mv microsoft.asc.gpg /etc/apt/trusted.gpg.d/
