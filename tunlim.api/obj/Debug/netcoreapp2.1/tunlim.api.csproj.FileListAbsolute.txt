@@ -1,0 +1,14 @@
+c:\git\tunlimapi\tunlim.api\obj\Debug\netcoreapp2.1\tunlim.api.csprojAssemblyReference.cache
+c:\git\tunlimapi\tunlim.api\obj\Debug\netcoreapp2.1\tunlim.api.csproj.CoreCompileInputs.cache
+c:\git\tunlimapi\tunlim.api\obj\Debug\netcoreapp2.1\tunlim.api.AssemblyInfoInputs.cache
+c:\git\tunlimapi\tunlim.api\obj\Debug\netcoreapp2.1\tunlim.api.AssemblyInfo.cs
+c:\git\tunlimapi\tunlim.api\bin\Debug\netcoreapp2.1\appsettings.json
+c:\git\tunlimapi\tunlim.api\bin\Debug\netcoreapp2.1\log4net.config
+c:\git\tunlimapi\tunlim.api\bin\Debug\netcoreapp2.1\tunlim.api.deps.json
+c:\git\tunlimapi\tunlim.api\bin\Debug\netcoreapp2.1\tunlim.api.runtimeconfig.json
+c:\git\tunlimapi\tunlim.api\bin\Debug\netcoreapp2.1\tunlim.api.runtimeconfig.dev.json
+c:\git\tunlimapi\tunlim.api\bin\Debug\netcoreapp2.1\tunlim.api.dll
+c:\git\tunlimapi\tunlim.api\bin\Debug\netcoreapp2.1\tunlim.api.pdb
+c:\git\tunlimapi\tunlim.api\obj\Debug\netcoreapp2.1\tunlim.api.dll
+c:\git\tunlimapi\tunlim.api\obj\Debug\netcoreapp2.1\tunlim.api.pdb
+c:\git\tunlimapi\tunlim.api\bin\Debug\netcoreapp2.1\lmdb.dll
