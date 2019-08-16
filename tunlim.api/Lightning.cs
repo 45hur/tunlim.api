@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.Serialization;
+using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
@@ -12,6 +10,7 @@ namespace tunlim.api
 {
     public class Lightning
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         protected LightningEnvironment env;
 
         public Lightning(string envPath, int numOfDb)
@@ -101,11 +100,16 @@ namespace tunlim.api
                     if (cur.MoveToFirst())
                     {
                         var keyvaluepair = cur.GetCurrent();
-                        result.Add(Encoding.ASCII.GetString(keyvaluepair.Key));
+                        var key = Encoding.UTF8.GetString(keyvaluepair.Key);
+                        var value = Encoding.UTF8.GetString(keyvaluepair.Value);
+                        result.Add(key);
+
+                        log.Debug($"key={key} value={value}");
+
                         while (cur.MoveNext())
                         {
                             var kvp = cur.GetCurrent();
-                            result.Add(Encoding.ASCII.GetString(kvp.Key));
+                            result.Add(Encoding.UTF8.GetString(kvp.Key));
                         }
                     }
                 }
