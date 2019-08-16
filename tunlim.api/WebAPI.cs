@@ -72,6 +72,24 @@ namespace tunlim.api
             }
         }
 
+        [Mapping("allkeys")]
+        public object AllKeys(HttpListenerContext ctx, string postdata)
+        {
+            try
+            {
+                var lmdb = new Lightning("/var/whalebone/tunlim", 1);
+                var values = lmdb.GetKeys(postdata);
+
+                return GenerateSuccess(string.Join(",", values));
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex);
+
+                return GenerateError(ex.Message);
+            }
+        }
+
         private object GenerateSuccess(string message)
         {
             var result = new StringBuilder();

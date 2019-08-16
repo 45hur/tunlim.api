@@ -89,6 +89,31 @@ namespace tunlim.api
             }
         }
 
+        public IEnumerable<string> GetKeys(string dbName)
+        {
+            var result = new List<string>();
+            using (var tx = env.BeginTransaction(TransactionBeginFlags.ReadOnly))
+            using (var db = tx.OpenDatabase(dbName))
+            {
+                using (var cur = tx.CreateCursor(db))
+                {
+                    var keybytes = new byte[8];
+                    if (cur.MoveToFirst())
+                    {
+                        var keyvaluepair = cur.GetCurrent();
+                        result.Add(Encoding.ASCII.GetString(keyvaluepair.Key));
+                        while (cur.MoveNext())
+                        {
+                            var kvp = cur.GetCurrent();
+                            result.Add(Encoding.ASCII.GetString(kvp.Key));
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
         public void PutObject(string dbname,string key, object value)
         {
             using (var tx = env.BeginTransaction())
