@@ -54,13 +54,14 @@ namespace tunlim.api
             }
         }
 
-        [Mapping("lmdb")]
-        public object Lmdb(HttpListenerContext ctx, string postdata)
+        [Mapping("key")]
+        public object Key(HttpListenerContext ctx, string postdata)
         {
             try
             {
                 var lmdb = new Lightning("/var/whalebone/tunlim", 1);
-                var value = lmdb.Get("cache", postdata);
+                var key = BitConverter.GetBytes(Convert.ToUInt64(postdata));
+                var value = Encoding.UTF8.GetString(lmdb.Get("cache", key));
 
                 return GenerateSuccess(value);
             }

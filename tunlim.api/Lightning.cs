@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -100,11 +101,12 @@ namespace tunlim.api
                     if (cur.MoveToFirst())
                     {
                         var keyvaluepair = cur.GetCurrent();
+                        var keyint = BitConverter.ToUInt64(keyvaluepair.Key);
                         var key = Encoding.UTF8.GetString(keyvaluepair.Key);
                         var value = Encoding.UTF8.GetString(keyvaluepair.Value);
                         result.Add(key);
 
-                        log.Debug($"key={key} value={value}");
+                        log.Debug($"key={key} keyint={keyint} value={value}");
 
                         while (cur.MoveNext())
                         {
