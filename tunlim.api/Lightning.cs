@@ -89,9 +89,9 @@ namespace tunlim.api
             }
         }
 
-        public IEnumerable<string> GetKeys(string dbName)
+        public IEnumerable<UInt64> GetKeys(string dbName)
         {
-            var result = new List<string>();
+            var result = new List<UInt64>();
             using (var tx = env.BeginTransaction(TransactionBeginFlags.ReadOnly))
             using (var db = tx.OpenDatabase(dbName))
             {
@@ -102,16 +102,17 @@ namespace tunlim.api
                     {
                         var keyvaluepair = cur.GetCurrent();
                         var keyint = BitConverter.ToUInt64(keyvaluepair.Key);
+                        result.Add(keyint);
+
                         var key = Encoding.UTF8.GetString(keyvaluepair.Key);
                         var value = Encoding.UTF8.GetString(keyvaluepair.Value);
-                        result.Add(key);
-
                         log.Debug($"key={key} keyint={keyint} value={value}");
 
                         while (cur.MoveNext())
                         {
                             var kvp = cur.GetCurrent();
-                            result.Add(Encoding.UTF8.GetString(kvp.Key));
+                            var ki = BitConverter.ToUInt64(kvp.Key);
+                            result.Add(ki);
                         }
                     }
                 }
