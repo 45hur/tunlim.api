@@ -73,6 +73,33 @@ namespace tunlim.api
             }
         }
 
+        [Mapping("add")]
+        public object Add(HttpListenerContext ctx, string postdata)
+        {
+            try
+            {
+                var pz = postdata.Split(";");
+                if (pz.Length != 2)
+                {
+                    return GenerateError("Could not parse postdata, expected value example: \"123;value\"");
+                }
+
+                var key = BitConverter.GetBytes(Convert.ToUInt64(pz[0]));
+                var value = Encoding.UTF8.GetBytes(pz[1]);
+                var lmdb = new Lightning("/var/whalebone/tunlim", 1);
+
+                lmdb.Put("cache", key, value);
+
+                return GenerateSuccess($"Inserted {key} : {value}.");
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex);
+
+                return GenerateError(ex.Message);
+            }
+        }
+
         [Mapping("allkeys")]
         public object AllKeys(HttpListenerContext ctx, string postdata)
         {
