@@ -89,6 +89,15 @@ namespace tunlim.api
             }
         }
 
+        public void Delete(string dbName, byte[] key)
+        {
+            using (var tx = env.BeginTransaction())
+            using (var db = tx.OpenDatabase(dbName))
+            {
+                tx.Delete(db, key);
+            }
+        }
+
         public IEnumerable<UInt64> GetKeys(string dbName)
         {
             var result = new List<UInt64>();

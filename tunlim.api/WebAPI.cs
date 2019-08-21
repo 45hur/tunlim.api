@@ -54,8 +54,8 @@ namespace tunlim.api
             }
         }
 
-        [Mapping("key")]
-        public object Key(HttpListenerContext ctx, string postdata)
+        [Mapping("select")]
+        public object Select(HttpListenerContext ctx, string postdata)
         {
             try
             {
@@ -91,6 +91,26 @@ namespace tunlim.api
                 lmdb.Put("cache", key, value);
 
                 return GenerateSuccess($"Inserted {key} : {value}.");
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex);
+
+                return GenerateError(ex.Message);
+            }
+        }
+
+        [Mapping("delete")]
+        public object Delete(HttpListenerContext ctx, string postdata)
+        {
+            try
+            {
+                var key = BitConverter.GetBytes(Convert.ToUInt64(postdata));
+                var lmdb = new Lightning("/var/whalebone/tunlim", 1);
+
+                lmdb.Delete("cache", key);
+
+                return GenerateSuccess($"Deleted {key}.");
             }
             catch (Exception ex)
             {
