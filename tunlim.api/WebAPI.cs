@@ -23,7 +23,8 @@ namespace tunlim.api
         private ConcurrentQueue<Job> queue = new ConcurrentQueue<Job>();
         private ConcurrentQueue<Job> priorityQueue = new ConcurrentQueue<Job>();
         private Thread tListener;
-        private Thread tProcessor;
+
+        protected readonly string dbpath = "/var/whalebone/";
 
         [Mapping("meminfo")]
         public object MemoryInfo(HttpListenerContext ctx, string postdata)
@@ -55,15 +56,17 @@ namespace tunlim.api
         }
 
         [Mapping("select")]
-        public object Select(HttpListenerContext ctx, string postdata)
+        public object Select(HttpListenerContext ctx, string postdata, string db, string table, UInt64 key)
         {
             try
             {
-                var lmdb = new Lightning("/var/whalebone/tunlim", 1);
-                var key = BitConverter.GetBytes(Convert.ToUInt64(postdata));
-                var value = Encoding.UTF8.GetString(lmdb.Get("cache", key));
+                using (var lmdb = new Lightning(Path.Combine(dbpath, db), 1))
+                {
+                    var keybytes = BitConverter.GetBytes(key);
+                    var value = Encoding.UTF8.GetString(lmdb.Get(table, keybytes));
 
-                return GenerateSuccess(value);
+                    return GenerateSuccess(value);
+                }
             }
             catch (Exception ex)
             {
@@ -74,23 +77,18 @@ namespace tunlim.api
         }
 
         [Mapping("add")]
-        public object Add(HttpListenerContext ctx, string postdata)
+        public object Add(HttpListenerContext ctx, string postdata, string db, string table, UInt64 key, string value)
         {
             try
             {
-                var pz = postdata.Split(";");
-                if (pz.Length != 2)
+                var keybytes = BitConverter.GetBytes(key);
+                var valuebytes = Encoding.UTF8.GetBytes(value);
+                using (var lmdb = new Lightning(Path.Combine(dbpath, db), 1))
                 {
-                    return GenerateError("Could not parse postdata, expected value example: \"123;value\"");
+                    lmdb.Put(table, keybytes, valuebytes);
                 }
 
-                var key = BitConverter.GetBytes(Convert.ToUInt64(pz[0]));
-                var value = Encoding.UTF8.GetBytes(pz[1]);
-                var lmdb = new Lightning("/var/whalebone/tunlim", 1);
-
-                lmdb.Put("cache", key, value);
-
-                return GenerateSuccess($"Inserted {key} : {value}.");
+                return GenerateSuccess($"Inserted into {table}, key={key}, value={value}.");
             }
             catch (Exception ex)
             {
@@ -101,16 +99,17 @@ namespace tunlim.api
         }
 
         [Mapping("delete")]
-        public object Delete(HttpListenerContext ctx, string postdata)
+        public object Delete(HttpListenerContext ctx, string postdata, string db, string table, UInt64 key)
         {
             try
             {
-                var key = BitConverter.GetBytes(Convert.ToUInt64(postdata));
-                var lmdb = new Lightning("/var/whalebone/tunlim", 1);
+                var keybytes = BitConverter.GetBytes(key);
+                using (var lmdb = new Lightning(Path.Combine(dbpath, db), 1))
+                {
+                    lmdb.Delete(table, keybytes);
 
-                lmdb.Delete("cache", key);
-
-                return GenerateSuccess($"Deleted {key}.");
+                    return GenerateSuccess($"Deleted {key} from {table}.");
+                }
             }
             catch (Exception ex)
             {
@@ -120,15 +119,17 @@ namespace tunlim.api
             }
         }
 
-        [Mapping("allkeys")]
-        public object AllKeys(HttpListenerContext ctx, string postdata)
+        [Mapping("getkeys")]
+        public object GetKeys(HttpListenerContext ctx, string postdata, string db, string table)
         {
             try
             {
-                var lmdb = new Lightning("/var/whalebone/tunlim", 1);
-                var values = lmdb.GetKeys(postdata);
+                using (var lmdb = new Lightning(Path.Combine(dbpath, db), 1))
+                {
+                    var values = lmdb.GetKeys(table);
 
-                return GenerateSuccess(string.Join(",", values));
+                    return GenerateSuccess(string.Join(",", values));
+                }
             }
             catch (Exception ex)
             {

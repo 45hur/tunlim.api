@@ -9,7 +9,7 @@ using LightningDB;
 
 namespace tunlim.api
 {
-    public class Lightning
+    public class Lightning : IDisposable
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         protected LightningEnvironment env;
