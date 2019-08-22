@@ -24,7 +24,19 @@ namespace tunlim.api
         private ConcurrentQueue<Job> priorityQueue = new ConcurrentQueue<Job>();
         private Thread tListener;
 
-        protected readonly string dbpath = "/var/whalebone/";
+        protected readonly string dbpath;
+
+        public WebAPI()
+        {
+            dbpath = (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) 
+                ? @"C:\lmdb\"
+                : @"/var/whalebone/lmdb/";
+
+            if (!Directory.Exists(dbpath))
+            {
+                Directory.CreateDirectory(dbpath);
+            }
+        }
 
         [Mapping("meminfo")]
         public object MemoryInfo(HttpListenerContext ctx, string postdata)
@@ -63,9 +75,14 @@ namespace tunlim.api
                 using (var lmdb = new Lightning(Path.Combine(dbpath, db), 1))
                 {
                     var keybytes = BitConverter.GetBytes(key);
-                    var value = Encoding.UTF8.GetString(lmdb.Get(table, keybytes));
+                    var value = lmdb.Get(table, keybytes);
+                    if (value == null)
+                    {
+                        return GenerateSuccess($"Table contains no elements for key {key}");
+                    }
+                    var valuestr = Encoding.UTF8.GetString(value);
 
-                    return GenerateSuccess(value);
+                    return GenerateSuccess(valuestr);
                 }
             }
             catch (Exception ex)
@@ -198,22 +215,10 @@ namespace tunlim.api
                                                         .ToArray();
 
                                 MethodInfo method = null;
-
-                                try
-                                {
-                                    method = this.GetType()
-                                                        .GetMethods()
-                                                        .Where(mi => mi.GetCustomAttributes(true).Any(attr => attr is Mapping && ((Mapping)attr).Map == methodName))
-                                                        .First();
-                                }
-                                catch (Exception ex)
-                                {
-                                    log.Debug(ex);
-
-                                    ctx.Response.OutputStream.Close();
-
-                                    return;
-                                }
+                                method = this.GetType()
+                                                    .GetMethods()
+                                                    .Where(mi => mi.GetCustomAttributes(true).Any(attr => attr is Mapping && ((Mapping)attr).Map == methodName))
+                                                    .First();
 
                                 var args = method.GetParameters().Skip(2).Select((p, i) => Convert.ChangeType(strParams[i], p.ParameterType));
                                 var @params = new object[args.Count() + 2];
@@ -229,7 +234,7 @@ namespace tunlim.api
                                     bytesRead = ctx.Request.InputStream.Read(inBuffer, 0, inBuffer.Length);
                                     if (bytesRead == 0 || bytesRead == -1)
                                     {
-                                            break;
+                                        break;
                                     }
 
                                     Array.Copy(inBuffer, 0, buffer, totalBytesRead, bytesRead);
@@ -237,7 +242,7 @@ namespace tunlim.api
 
                                     if (totalBytesRead == inLength)
                                     {
-                                            break;
+                                        break;
                                     }
                                 }
 
@@ -260,16 +265,42 @@ namespace tunlim.api
                                     }
                                     ctx.Response.OutputStream.Close();
                                 }
-                                catch (HttpException ex)
+                                catch (Exception ex)
                                 {
                                     log.Error($"{ex}");
 
-                                    ctx.Response.StatusCode = (int)ex.Status;
-                                    ctx.Response.ContentType = "application/json";
+                                    if (ex.InnerException != null)
+                                    {
+                                        var hex = ex.InnerException as HttpException;
+                                        if (hex != null)
+                                        {
+                                            ctx.Response.StatusCode = (int)hex.Status;
+                                            ctx.Response.ContentType = "application/json";
 
-                                    var outBuffer = Encoding.UTF8.GetBytes(ex.Message);
-                                    ctx.Response.ContentLength64 = outBuffer.LongLength;
-                                    ctx.Response.OutputStream.Write(outBuffer, 0, outBuffer.Length);
+                                            var outBuffer = Encoding.UTF8.GetBytes(hex.Message);
+                                            ctx.Response.ContentLength64 = outBuffer.LongLength;
+                                            ctx.Response.OutputStream.Write(outBuffer, 0, outBuffer.Length);
+                                        }
+                                        else
+                                        {
+                                            ctx.Response.StatusCode = 500;
+                                            ctx.Response.ContentType = "text/plain";
+
+                                            var outBuffer = Encoding.UTF8.GetBytes(ex.InnerException.Message);
+                                            ctx.Response.ContentLength64 = outBuffer.LongLength;
+                                            ctx.Response.OutputStream.Write(outBuffer, 0, outBuffer.Length);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        ctx.Response.StatusCode = 500;
+                                        ctx.Response.ContentType = "text/plain";
+
+                                        var outBuffer = Encoding.UTF8.GetBytes(ex.Message);
+                                        ctx.Response.ContentLength64 = outBuffer.LongLength;
+                                        ctx.Response.OutputStream.Write(outBuffer, 0, outBuffer.Length);
+                                    }
+
                                     ctx.Response.OutputStream.Close();
                                 }
                             }

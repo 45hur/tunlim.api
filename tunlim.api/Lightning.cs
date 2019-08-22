@@ -56,10 +56,21 @@ namespace tunlim.api
         public void Put(string dbname, string key, string value)
         {
             using (var tx = env.BeginTransaction())
-            using (var db = tx.OpenDatabase(dbname, new DatabaseConfiguration { Flags = DatabaseOpenFlags.Create }))
             {
-                tx.Put(db, Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(value));
-                tx.Commit();
+                try
+                {
+                    using (var db = tx.OpenDatabase(dbname, new DatabaseConfiguration { Flags = DatabaseOpenFlags.Create }))
+                    {
+                        tx.Put(db, Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(value));
+                        tx.Commit();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tx.Abort();
+
+                    throw ex;
+                }
             }
         }
 
@@ -75,28 +86,55 @@ namespace tunlim.api
         public void Put(string dbname, byte[] key, byte[] value)
         {
             using (var tx = env.BeginTransaction())
-            using (var db = tx.OpenDatabase(dbname, new DatabaseConfiguration { Flags = DatabaseOpenFlags.Create }))
             {
-                tx.Put(db, key, value);
-                tx.Commit();
+                try
+                {
+                    using (var db = tx.OpenDatabase(dbname, new DatabaseConfiguration { Flags = DatabaseOpenFlags.Create }))
+                    {
+                        tx.Put(db, key, value);
+
+                        tx.Commit();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tx.Abort();
+
+                    throw ex;
+                }
             }
         }
 
         public byte[] Get(string dbName, byte[] key)
         {
             using (var tx = env.BeginTransaction(TransactionBeginFlags.ReadOnly))
-            using (var db = tx.OpenDatabase(dbName))
             {
-                return tx.Get(db, key);
+                using (var db = tx.OpenDatabase(dbName))
+                {
+                    return tx.Get(db, key);
+                }
             }
         }
 
         public void Delete(string dbName, byte[] key)
         {
             using (var tx = env.BeginTransaction())
-            using (var db = tx.OpenDatabase(dbName))
             {
-                tx.Delete(db, key);
+                try
+                {
+                    using (var db = tx.OpenDatabase(dbName))
+                    {
+                        tx.Delete(db, key);
+
+                        tx.Commit();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tx.Abort();
+
+                    throw ex;
+                }
             }
         }
 
@@ -135,10 +173,22 @@ namespace tunlim.api
         public void PutObject(string dbname,string key, object value)
         {
             using (var tx = env.BeginTransaction())
-            using (var db = tx.OpenDatabase(dbname, new DatabaseConfiguration { Flags = DatabaseOpenFlags.Create }))
             {
-                tx.Put(db, Encoding.UTF8.GetBytes(key), ObjectToByteArray(value));
-                tx.Commit();
+                try
+                {
+                    using (var db = tx.OpenDatabase(dbname, new DatabaseConfiguration { Flags = DatabaseOpenFlags.Create }))
+                    {
+                        tx.Put(db, Encoding.UTF8.GetBytes(key), ObjectToByteArray(value));
+
+                        tx.Commit();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tx.Abort();
+
+                    throw ex;
+                }
             }
         }
 
