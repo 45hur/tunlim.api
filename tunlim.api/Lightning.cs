@@ -16,12 +16,14 @@ namespace tunlim.api
 
         public Lightning(string envPath, int numOfDb)
         {
-            env = new LightningEnvironment(envPath);
-            env.MaxDatabases = numOfDb;
+            env = new LightningEnvironment(envPath)
+            {
+                MaxDatabases = numOfDb
+            };
             env.Open();
         }
 
-        ~Lightning()
+        public void Dispose()
         {
             env.Dispose();
         }
