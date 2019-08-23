@@ -28,7 +28,7 @@ namespace tunlim.api
 
         public WebAPI()
         {
-            dbpath = (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) 
+            dbpath = (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 ? @"C:\lmdb\"
                 : @"/var/whalebone/lmdb/";
 
@@ -193,32 +193,32 @@ namespace tunlim.api
                 {
                     var prefix = Configuration.GetApiServer();
                     log.Info($"Starting WebAPI on {prefix}");
-                    HttpListener listener = new HttpListener();
+                    var listener = new HttpListener();
 
                     listener.Prefixes.Add(prefix);
                     listener.Start();
                     while (true)
                     {
-                        HttpListenerContext ctx = listener.GetContext();
+                        var ctx = listener.GetContext();
 
                         ThreadPool.QueueUserWorkItem((_) =>
                         {
                             try
                             {
-                                log.Info($"RemoteEndPoint = {ctx.Request.RemoteEndPoint.ToString()}");
+                                if (ctx.Request.RemoteEndPoint != null)
+                                    log.Info($"RemoteEndPoint = {ctx.Request.RemoteEndPoint}");
 
-                                string methodName = ctx.Request.Url.Segments[1].Replace("/", "");
-                                string[] strParams = ctx.Request.Url
+                                var methodName = ctx.Request.Url.Segments[1].Replace("/", "");
+                                var strParams = ctx.Request.Url
                                                         .Segments
                                                         .Skip(2)
                                                         .Select(s => s.Replace("/", ""))
                                                         .ToArray();
 
-                                MethodInfo method = null;
-                                method = this.GetType()
+                                var method = this
+                                                    .GetType()
                                                     .GetMethods()
-                                                    .Where(mi => mi.GetCustomAttributes(true).Any(attr => attr is Mapping && ((Mapping)attr).Map == methodName))
-                                                    .First();
+                                                    .First(mi => mi.GetCustomAttributes(true).Any(attr => attr is Mapping mapping && mapping.Map == methodName));
 
                                 var args = method.GetParameters().Skip(2).Select((p, i) => Convert.ChangeType(strParams[i], p.ParameterType));
                                 var @params = new object[args.Count() + 2];
@@ -227,11 +227,10 @@ namespace tunlim.api
 
                                 var inBuffer = new byte[4096];
                                 var buffer = new byte[inLength];
-                                int totalBytesRead = 0;
-                                int bytesRead = 0;
+                                var totalBytesRead = 0;
                                 while (true)
                                 {
-                                    bytesRead = ctx.Request.InputStream.Read(inBuffer, 0, inBuffer.Length);
+                                    var bytesRead = ctx.Request.InputStream.Read(inBuffer, 0, inBuffer.Length);
                                     if (bytesRead == 0 || bytesRead == -1)
                                     {
                                         break;
@@ -251,47 +250,44 @@ namespace tunlim.api
                                 Array.Copy(args.ToArray(), 0, @params, 2, args.Count());
 
                                 log.Info($"Invoking {method.Name}");
-                                try
+                                if (method.Invoke(this, @params) is string ret)
                                 {
-                                    var ret = method.Invoke(this, @params) as string;
-                                    if (ret != null)
+                                    var outBuffer = Encoding.UTF8.GetBytes(ret);
+                                    ctx.Response.ContentType = "application/json";
+                                    ctx.Response.AppendHeader("Access-Control-Allow-Origin", "*");
+                                    ctx.Response.AppendHeader("Access-Control-Allow-Headers", "Content-Type");
+                                    ctx.Response.ContentLength64 = outBuffer.LongLength;
+                                    ctx.Response.OutputStream.Write(outBuffer, 0, outBuffer.Length);
+                                }
+
+                                ctx.Response.OutputStream.Close();
+
+                            }
+                            catch (Exception ex)
+                            {
+                                if (ex.InnerException != null && ex.InnerException is HttpException hex)
+                                {
+                                    log.Error($"Unable to process request {ctx.Request.Url}, ex: {ex.InnerException}");
+
+                                    try
                                     {
-                                        var outBuffer = Encoding.UTF8.GetBytes(ret);
+                                        ctx.Response.StatusCode = (int)hex.Status;
                                         ctx.Response.ContentType = "application/json";
-                                        ctx.Response.AppendHeader("Access-Control-Allow-Origin", "*");
-                                        ctx.Response.AppendHeader("Access-Control-Allow-Headers", "Content-Type");
+
+                                        var outBuffer = Encoding.UTF8.GetBytes(hex.Message);
                                         ctx.Response.ContentLength64 = outBuffer.LongLength;
                                         ctx.Response.OutputStream.Write(outBuffer, 0, outBuffer.Length);
                                     }
-                                    ctx.Response.OutputStream.Close();
-                                }
-                                catch (Exception ex)
-                                {
-                                    log.Error($"{ex}");
-
-                                    if (ex.InnerException != null)
+                                    catch
                                     {
-                                        var hex = ex.InnerException as HttpException;
-                                        if (hex != null)
-                                        {
-                                            ctx.Response.StatusCode = (int)hex.Status;
-                                            ctx.Response.ContentType = "application/json";
-
-                                            var outBuffer = Encoding.UTF8.GetBytes(hex.Message);
-                                            ctx.Response.ContentLength64 = outBuffer.LongLength;
-                                            ctx.Response.OutputStream.Write(outBuffer, 0, outBuffer.Length);
-                                        }
-                                        else
-                                        {
-                                            ctx.Response.StatusCode = 500;
-                                            ctx.Response.ContentType = "text/plain";
-
-                                            var outBuffer = Encoding.UTF8.GetBytes(ex.InnerException.Message);
-                                            ctx.Response.ContentLength64 = outBuffer.LongLength;
-                                            ctx.Response.OutputStream.Write(outBuffer, 0, outBuffer.Length);
-                                        }
+                                        //ignored
                                     }
-                                    else
+                                }
+                                else
+                                {
+                                    log.Error($"Unable to process request {ctx.Request.Url}, ex: {ex}");
+
+                                    try
                                     {
                                         ctx.Response.StatusCode = 500;
                                         ctx.Response.ContentType = "text/plain";
@@ -300,13 +296,11 @@ namespace tunlim.api
                                         ctx.Response.ContentLength64 = outBuffer.LongLength;
                                         ctx.Response.OutputStream.Write(outBuffer, 0, outBuffer.Length);
                                     }
-
-                                    ctx.Response.OutputStream.Close();
+                                    catch
+                                    {
+                                        //ignored
+                                    }
                                 }
-                            }
-                            catch (Exception ex)
-                            {
-                                log.Error($"Unable to process request {ctx.Request.Url}, ex: {ex}");
 
                                 ctx.Response.OutputStream.Close();
                             }
@@ -321,6 +315,7 @@ namespace tunlim.api
                 log.Fatal($"{ex}");
             }
         }
+
 
         private void ThreadProcProcessor()
         {
@@ -347,7 +342,7 @@ namespace tunlim.api
                         {
                             try
                             {
-                                
+
                             }
                             catch (Exception ex)
                             {

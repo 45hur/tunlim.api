@@ -149,20 +149,16 @@ namespace tunlim.api
                     var keybytes = new byte[8];
                     if (cur.MoveToFirst())
                     {
-                        var keyvaluepair = cur.GetCurrent();
-                        var keyint = BitConverter.ToUInt64(keyvaluepair.Key);
-                        result.Add(keyint);
-
-                        var key = Encoding.UTF8.GetString(keyvaluepair.Key);
-                        var value = Encoding.UTF8.GetString(keyvaluepair.Value);
-                        log.Debug($"key={key} keyint={keyint} value={value}");
-
-                        while (cur.MoveNext())
+                        do
                         {
-                            var kvp = cur.GetCurrent();
-                            var ki = BitConverter.ToUInt64(kvp.Key);
-                            result.Add(ki);
+                            var keyvaluepair = cur.GetCurrent();
+                            var keyint = BitConverter.ToUInt64(keyvaluepair.Key);
+                            var key = Encoding.UTF8.GetString(keyvaluepair.Key);
+                            var value = Encoding.UTF8.GetString(keyvaluepair.Value);
+                            result.Add(keyint);
+                            log.Debug($"key={key} keyint={keyint} value={value}");
                         }
+                        while (cur.MoveNext());
                     }
                 }
             }
