@@ -21,7 +21,7 @@
     <PackageReference Include="ipnetwork2" Version="2.4.0.126" />
     <PackageReference Include="LightningDB" Version="0.10.0" />
     <PackageReference Include="log4net" Version="2.0.8" />
-    <PackageReference Include="Newtonsoft.json" Version="12.0.2" />
+    <PackageReference Include="Newtonsoft.json" Version="13.0.1" />
   </ItemGroup>
 
   <ItemGroup>
